@@ -20,10 +20,11 @@ def hashFunction(stringData):
     # once modded, this function will produce an index in the range 0-{tableSize-1}
     # ideally, each key plugged in will yield a different value in this range, resulting in no collisions during construction
     
-    # HF1: just reinterpret the provided stringData as a number and don't bother doing anything else with it, with tableSize set to exactly 15,001 so all spaces are used
-    # this results in a fairly random number much larger than tableSize (tableSize=11101010011001, 14 bits, while key has a minimum size of one byte per char in key and all keys are longer than two characters)
-    # however, because of the mod operation performed later, only the last several digits of this number, and consequentially the last few chars of stringData, actually effect the final index used
-    key = int.from_bytes(stringData.encode(),byteorder='big')
+    # HF2: previous attempt essentially calculated the index based only off of the last few chars in stringData, and certain combinations of ending chars (ex. "-on", "-er") are more common than others (ex. "-xb", "-tl") because of which characters are generally allowed to end english words
+    # to avoid the particularly un-uniform distribution of characters at the end of words, this implementation swaps stringData's first and second halves before interpreting it as a number, thus making the ending bits that play the greatest role in determining the index somewhat more random, because now they could come not just from the end of a word but also from the start or middle
+    strBytes = stringData.encode()
+    strBytes = strBytes[int(len(strBytes)/2):]+strBytes[:int(len(strBytes)/2)]
+    key = int.from_bytes(strBytes,byteorder='big')
     return key
 
 import csv, time
@@ -54,10 +55,10 @@ with open(file, 'r', newline='',  encoding="utf8") as csvfile:
         # first get the key and convert it to an index by making sure it's within the appropriate size using mod
         titleIndex = hashFunction(movie.title) % tableSize
         if hashTitleTable[titleIndex]!=None: # handle collision by changing titleIndex, if necessary
-            titleIndex+=1
+            titleIndex=titleIndex+1 if titleIndex<(tableSize-1) else 0
             while hashTitleTable[titleIndex]==None:
                 titleIndex+=1
-                if titleIndex==tableSize:
+                if titleIndex>=tableSize:
                     titleIndex=0
             tCollisions+=1
         # when an empty space is found, add the item
@@ -83,10 +84,10 @@ with open(file, 'r', newline='', encoding='utf8') as csvfile:
         # first get the key and convert it to an index by making sure it's within the appropriate size using mod
         quoteIndex = hashFunction(movie.quote) % tableSize
         if hashQuoteTable[quoteIndex]!=None: # handle collision by changing quoteIndex, if necessary
-            quoteIndex+=1
+            quoteIndex=quoteIndex+1 if quoteIndex<(tableSize-1) else 0
             while hashQuoteTable[quoteIndex]==None:
                 quoteIndex+=1
-                if quoteIndex==tableSize:
+                if quoteIndex>=tableSize:
                     quoteIndex=0
             qCollisions+=1
         # when an empty space is found, add the item
