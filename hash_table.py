@@ -22,11 +22,16 @@ def hashFunction(stringData):
     # once modded, this function will produce an index in the range 0-{tableSize-1}
     # ideally, each key plugged in will yield a different value in this range, resulting in no collisions during construction
     
-    # HF3: reading stringData's bytes as a number seemed to produce relatively similar results in terms of collisions regardless of how those bytes were mixed up before interpretation
-    # since starting and ending in different places doesn't produce uniform-enough results to lower collisions, this attempt tries to introduce an additional level of randomness by first squaring int(stringData) to produce a new number relatively distinct from that produced by other, numerically-close stringDatas
-    # from this new number, the five central digits are extracted and used to calculate index
-    square = str(int.from_bytes(stringData.encode(),byteorder='big')**2)
-    key = int(square[int(len(square)/2)-3:int(len(square)/2)+2])
+    # HF4: Previous attempts have involved interpreting stringData's bytes as one long integer, which means longer stringData values invariably returned larger values to be modded
+    # this pattern can be broken up somewhat by breaking down stringData's bytes into "packages" of a given number of bytes and then summing all of those packages together
+    # this way, although longer stringData's are still more likely to return higher numbers because more packages contribute to the sum, the effect of length is less extreme, since, for example, a 3-byte stringData beginning with 0b0000 0001 and a 2-byte stringData beginning the same way both get 1 added to their sums, rather than +131,072 and +512, respectively
+    key = 0
+    i = 0
+    packageSize = 6
+    strBytes = stringData.encode()
+    while i < len(strBytes):
+        key+=int.from_bytes(strBytes[i:i+packageSize],byteorder='big')
+        i+=packageSize
     return key
 
 
