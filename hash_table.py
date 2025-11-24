@@ -22,16 +22,10 @@ def hashFunction(stringData):
     # once modded, this function will produce an index in the range 0-{tableSize-1}
     # ideally, each key plugged in will yield a different value in this range, resulting in no collisions during construction
     
-    # HF4: Previous attempts have involved interpreting stringData's bytes as one long integer, which means longer stringData values invariably returned larger values to be modded
-    # this pattern can be broken up somewhat by breaking down stringData's bytes into "packages" of a given number of bytes and then summing all of those packages together
-    # this way, although longer stringData's are still more likely to return higher numbers because more packages contribute to the sum, the effect of length is less extreme, since, for example, a 3-byte stringData beginning with 0b0000 0001 and a 2-byte stringData beginning the same way both get 1 added to their sums, rather than +131,072 and +512, respectively
-    key = 0
-    i = 0
-    packageSize = 6
-    strBytes = stringData.encode()
-    while i < len(strBytes):
-        key+=int.from_bytes(strBytes[i:i+packageSize],byteorder='big')
-        i+=packageSize
+    # HF5: Previous attempts haven't really tried to constrain the range of outputs this function returns, instead relying solely on modding by tableSize later to ensure an index that is actually within the table
+    # However, if this function produced uniform values in the range 0-{1.5*tableSize}, for example, indexes 0-{.5*tableSize} will be produced by key%tableSize much more than indexes {.5*tableSize}-{tableSize-1} will, increasing the likelihood of collissions
+    # This problem can be solved by treating stringData as a very large int and modding it by a semi-random number that is roughly an even multiple of tableSize, thereby ensuring the ensuing key%tableSize calculation won't be skewed towards either end of the 0-{tableSize-1} range
+    key = int.from_bytes(stringData.encode(),byteorder='big')%104729
     return key
 
 
