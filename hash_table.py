@@ -1,3 +1,5 @@
+import csv, time, math
+
 class DataItem:
     def __init__(self, line):
         if len(line)<9:
@@ -20,14 +22,14 @@ def hashFunction(stringData):
     # once modded, this function will produce an index in the range 0-{tableSize-1}
     # ideally, each key plugged in will yield a different value in this range, resulting in no collisions during construction
     
-    # HF2: previous attempt essentially calculated the index based only off of the last few chars in stringData, and certain combinations of ending chars (ex. "-on", "-er") are more common than others (ex. "-xb", "-tl") because of which characters are generally allowed to end english words
-    # to avoid the particularly un-uniform distribution of characters at the end of words, this implementation swaps stringData's first and second halves before interpreting it as a number, thus making the ending bits that play the greatest role in determining the index somewhat more random, because now they could come not just from the end of a word but also from the start or middle
-    strBytes = stringData.encode()
-    strBytes = strBytes[int(len(strBytes)/2):]+strBytes[:int(len(strBytes)/2)]
-    key = int.from_bytes(strBytes,byteorder='big')
+    # HF3: reading stringData's bytes as a number seemed to produce relatively similar results in terms of collisions regardless of how those bytes were mixed up before interpretation
+    # since starting and ending in different places doesn't produce uniform-enough results to lower collisions, this attempt tries to introduce an additional level of randomness by first squaring int(stringData) to produce a new number relatively distinct from that produced by other, numerically-close stringDatas
+    # from this new number, the five central digits are extracted and used to calculate index
+    square = str(int.from_bytes(stringData.encode(),byteorder='big')**2)
+    key = int(square[int(len(square)/2)-3:int(len(square)/2)+2])
     return key
 
-import csv, time
+
 
 # create empty hash tables
 tableSize = 15001 # there are 15,001 items in MOCK_DATA.csv so the table must be at least that big
@@ -66,7 +68,8 @@ with open(file, 'r', newline='',  encoding="utf8") as csvfile:
              
         counter += 1
     # hashTitleTable filled, print stats
-    print(f"Title table stats\nUnused slots: {tableSize-counter}\nCollisions: {tCollisions}\nTime taken: {(time.perf_counter()-startTime):.5f}s\n")
+    endTime = time.perf_counter()
+    print(f"Title table stats\nUnused slots: {tableSize-counter}\nCollisions: {tCollisions}\nTime taken: {(endTime-startTime):.5f}s\n")
 
 # repeat above to fill hashQuoteTable
 with open(file, 'r', newline='', encoding='utf8') as csvfile:
@@ -95,5 +98,6 @@ with open(file, 'r', newline='', encoding='utf8') as csvfile:
                  
         counter += 1
     # hashQuoteTable filled, print stats
-    print(f"Quote table stats\nUnused slots: {tableSize-counter}\nCollisions: {qCollisions}\nTime taken: {(time.perf_counter()-startTime):.5f}s\n")
+    endTime = time.perf_counter()
+    print(f"Quote table stats\nUnused slots: {tableSize-counter}\nCollisions: {qCollisions}\nTime taken: {(endTime-startTime):.5f}s\n")
 print(f"Items added: {counter}")
